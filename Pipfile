@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+boto3 = "*"
+requests = "*"
+jsonschema = "*"
+
+[dev-packages]
+invoke = "*"
+pygithub = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock= "*"
+flake8 = "*"
+pylint = "*"
+
+[requires]
+python_version = "3.7"
+
+[pytest]
+mock_use_standalone_module = true
