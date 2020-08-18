@@ -54,16 +54,10 @@ class Endpoint:
                 raise MissingReponseFields(f'Missing key fields: {any(x for x in ["data", "links"] not in response)}')
 
     def validate_headers(self, headers):
-        if headers.get('Content-Type', None):
-            if headers['Content-Type'] != "application/json":
-                raise ValueError('Content-Type header is invalid')
-        if headers.get('Accept', None):
-            if headers['Accept'] != "application/json":
-                raise ValueError('Accept header is invalid')
+        if headers.get('Content-Type', None) not in ["application/json"]:
+            raise ValueError('Content-Type header is invalid')
+        if headers.get('Accept', None) not in ["application/json", "application/pdf"]:
+            raise ValueError('Accept header is invalid')
 
     def validate_request(self):
-        valid_request_object = True
-        if self.endpoint_path == self.event.get('path'):
-            valid_request_object = False
-        
-        return valid_request_object
+        return True if self.endpoint_path == self.event.get('path') else False

@@ -12,3 +12,19 @@ class MissingReponseFields(Exception):
 
 class InvalidateSchema(Exception):
     pass
+
+
+class S3WriteFailure(Exception):
+    pass
+
+
+class S3ReadFailure(Exception):
+    pass
+
+
+class DynamoDBWriteFailure(Exception):
+    pass
+
+
+class DynamoDBReadFailure(Exception):
+    pass

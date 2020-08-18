@@ -38,16 +38,14 @@ class s3:
 
         return response
 
-    def put_object(self, ACL, Body, BUcket, ContentLength, Key, ServerSideEncryption, SSECustomerKey, SSEKMSKeyId):
+    def put_object(self, ACL, Body, Bucket, Key, SSEKMSKeyId, ServerSideEncryption='aws:kms', SSECustomerAlgorithm="AES256"):
         response = self.client.put_object(
             ACL=ACL,
             Body=Body,
             Bucket=Bucket,
-            ContentLength=ContentLength,
             Key=Key,
-            ServerSideEncryption='aws:kms',
-            SSECustomerAlgorithm="AES256",
-            SSECustomerKey=SSECustomerKey,
+            ServerSideEncryption=ServerSideEncryption,
+            SSECustomerAlgorithm=SSECustomerAlgorithm,
             SSEKMSKeyId=SSEKMSKeyId
         )
 
