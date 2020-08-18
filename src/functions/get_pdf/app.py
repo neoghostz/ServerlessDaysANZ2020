@@ -28,8 +28,23 @@ class GetPDF(Endpoint):
 
             return mock_response
 
+    def validate_payload(self):
+        if not isinstance(self.data, list):
+            raise ValueError("Submitted data is not a list")
+
     def response(self):
+        self.vali
         return self.build_response(200, {})
+
+    def build_response(self):
+        response = {
+            'statusCode': self.status,
+            'headers': self.build_headers(self.pdf.output(dest='S').encode('latin-1')),
+            'body': str(self.pdf.output(dest='S').encode('latin-1'), 'latin-1', errors='ignore'),
+            'isBase64Encoded': True
+        }
+        self.logger.debug(response)
+        return response
 
 def lambda_handler(event, context):
     return GetPDF(event, context).response()

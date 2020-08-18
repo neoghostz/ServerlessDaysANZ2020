@@ -3,11 +3,11 @@ import boto3
 
 class secretsmanager:
 
-    def __init__(self, region):
-        self.smClient = boto3.client('secretsmanager', region_name=region)
+    def __init__(self):
+        self.client = boto3.client('secretsmanager')
 
     def cancel_rotate_secret(self, SecretId):
-        response = self.smClient.cancel_rotate_secret(
+        response = self.client.cancel_rotate_secret(
             SecretId=SecretId
         )
 
@@ -18,7 +18,7 @@ class secretsmanager:
             Tags = self.generate_tags(Name)
         if KmsKeyId is None:
             KmsKeyId = ""
-        response = self.smClient.create_secret(
+        response = self.client.create_secret(
             Name=Name,
             ClientRequestToken=ClientRequestToken,
             Description=Description,
@@ -34,7 +34,7 @@ class secretsmanager:
             Tags = self.generate_tags(Name)
         if KmsKeyId is None:
             KmsKeyId = ""
-        response = self.smClient.create_secret(
+        response = self.client.create_secret(
             Name=Name,
             ClientRequestToken=ClientRequestToken,
             Description=Description,
@@ -46,14 +46,14 @@ class secretsmanager:
         return response["ARN"], response["Name"]
 
     def delete_resource_policy(self, SecretId):
-        response = self.smClient.delete_resource_policy(
+        response = self.client.delete_resource_policy(
             SecretId=SecretId
         )
 
         return response["ARN"], response["Name"]
 
     def delete_secret(self, SecretId, RecoveryWindowInDays=30):
-        response = self.smClient.delete_secret(
+        response = self.client.delete_secret(
             SecretId=SecretId,
             RecoveryWindowInDays=RecoveryWindowInDays
         )
@@ -61,14 +61,14 @@ class secretsmanager:
         return response
 
     def describe_secret(self, SecretId):
-        response = self.smClient.describe_secret(
+        response = self.client.describe_secret(
             SecretId=SecretId
         )
 
         return response
 
     def get_random_password(self, PasswordLength=32, ExcludeCharacters="\/0!^&`", ExcludeNumbers=False, ExcludePunctuation=True, ExcludeUppercase=False, ExcludeLowercase=False, IncludeSpace=False, RequireEachIncludedType=True):
-        response = self.smClient.get_random_password(
+        response = self.client.get_random_password(
             PasswordLength=PasswordLength,
             ExcludeCharacters=ExcludeCharacters,
             ExcludeNumbers=ExcludeNumbers,
@@ -82,7 +82,7 @@ class secretsmanager:
         return response["RandomPassword"]
 
     def get_resource_policy(self, SecretId):
-        response = self.smClient.get_resource_policy(
+        response = self.client.get_resource_policy(
             SecretId=SecretId
         )
 
@@ -90,12 +90,12 @@ class secretsmanager:
 
     def get_secret_value(self, SecretId, VersionId=None, VersionStage=None):
         if VersionId:
-            response = self.smClient.get_secret_value(
+            response = self.client.get_secret_value(
                 SecretId=SecretId,
                 VersionId=VersionId
             )
         else:
-            response = self.smClient.get_secret_value(
+            response = self.client.get_secret_value(
                 SecretId=SecretId
             )
 
@@ -103,13 +103,13 @@ class secretsmanager:
 
     def list_secret_version_ids(self, SecretId, IncludeDeprecated=False):
         versions = []
-        response = self.smClient.list_secret_version_ids(
+        response = self.client.list_secret_version_ids(
             SecretId=SecretId,
             IncludeDeprecated=IncludeDeprecated
         )
         versions.extend(response["Versions"])
         while "NextToken" in response:
-            response = self.smClient.list_secret_version_ids(
+            response = self.client.list_secret_version_ids(
                 SecretId=SecretId,
                 IncludeDeprecated=IncludeDeprecated,
                 NextToken=response["NextToken"]
@@ -120,10 +120,10 @@ class secretsmanager:
 
     def list_secrets(self):
         secrets = []
-        response = self.smClient.list_secrets()
+        response = self.client.list_secrets()
         secrets.extend(response["SecretList"])
         while "NextToken" in response:
-            response = self.smClient.list_secrets(
+            response = self.client.list_secrets(
                 NextToken=response["NextToken"]
             )
             secrets.extend(response["SecretList"])
@@ -131,7 +131,7 @@ class secretsmanager:
         return secrets
 
     def put_resource_policy(self, SecretId, ResourcePolicy):
-        response = self.smClient.put_resource_policy(
+        response = self.client.put_resource_policy(
             SecretId=SecretId,
             ResourcePolicy=ResourcePolicy
         )
@@ -139,7 +139,7 @@ class secretsmanager:
         return response["ARN"], response["Name"]
 
     def put_secret_value_binary(self, SecretId, ClientRequestToken, SecretBinary, VersionStages):
-        response = self.smClient.put_secret_value(
+        response = self.client.put_secret_value(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             SecretBinary=SecretBinary,
@@ -149,7 +149,7 @@ class secretsmanager:
         return response
 
     def put_secret_value_string(self, SecretId, ClientRequestToken, SecretString, VersionStages):
-        response = self.smClient.put_secret_value(
+        response = self.client.put_secret_value(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             SecretString=SecretString,
@@ -159,14 +159,14 @@ class secretsmanager:
         return response
 
     def restore_secret(self, SecretId):
-        response = self.smClient.restore_secret(
+        response = self.client.restore_secret(
             SecretId=SecretId
         )
 
         return response["ARN"], response["Name"]
 
     def rotate_secret(self, SecretId, ClientRequestToken, RotationRules):
-        response = self.smClient.rotate_secret(
+        response = self.client.rotate_secret(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             RotationRules=RotationRules
@@ -175,7 +175,7 @@ class secretsmanager:
         return response
 
     def rotate_secret_lambda(self, SecretId, ClientRequestToken, RotationLambdaARN, RotationRules):
-        response = self.smClient.rotate_secret(
+        response = self.client.rotate_secret(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             RotationLambdaARN=RotationLambdaARN,
@@ -185,13 +185,13 @@ class secretsmanager:
         return response
 
     def tag_resource(self, SecretId, Tags):
-        self.smClient.tag_resource(
+        self.client.tag_resource(
             SecretId=SecretId,
             Tags=self.generate_tags(name=SecretId)
         )
 
     def untag_resource(self, SecretId, TagKeys):
-        self.smClient.untag_resource(
+        self.client.untag_resource(
             SecretId=SecretId,
             TagKeys=TagKeys
         )
@@ -199,7 +199,7 @@ class secretsmanager:
     def update_secret_binary(self, SecretId, ClientRequestToken, Description, SecretBinary, KmsKeyId=None):
         if KmsKeyId is None:
             KmsKeyId = ""
-        response = self.smClient.update_secret(
+        response = self.client.update_secret(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             Description=Description,
@@ -212,7 +212,7 @@ class secretsmanager:
     def update_secret_string(self, SecretId, ClientRequestToken, Description, SecretString, KmsKeyId=None):
         if KmsKeyId is None:
             KmsKeyId = ""
-        response = self.smClient.update_secret(
+        response = self.client.update_secret(
             SecretId=SecretId,
             ClientRequestToken=ClientRequestToken,
             Description=Description,
@@ -223,7 +223,7 @@ class secretsmanager:
         return response
 
     def update_secret_version_stage(self, SecretId, VersionStage, MoveToVersionId):
-        response = self.smClient.update_secret_version_stage(
+        response = self.client.update_secret_version_stage(
             SecretId=SecretId,
             VersionStage=VersionStage,
             MoveToVersionId=MoveToVersionId

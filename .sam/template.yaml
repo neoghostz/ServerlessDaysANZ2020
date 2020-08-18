@@ -4,10 +4,13 @@ Description: Serverless Days ANZ 2020 Demo
 Parameters:
   Environment:
     Type: String
-    Default: Dev
-  DomainName:
+    Default: dev
+  GitHash:
     Type: String
-    Default: demo.cdr.versentpoc.com
+    Default: latest
+  APIDomainName:
+    Type: String
+    Default: serverlessdays.elendel.com.au
   Certificate:
     Type: String
     Default: arn:aws:acm:us-east-1:293499315857:certificate/e6487f1e-46cc-47ac-a0da-c22ae565bef8
@@ -16,47 +19,47 @@ Parameters:
     Default: Z11STCZAFY5AJJ
   HostedZoneName:
     Type: String
-    Default: versentpoc.com.
+    Default: elendel.com.au
 
 Resources:
 
-  CDRGateway:
+  Gateway:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub "CDR Gateway {Environment}"
+      Name: !Sub " Gateway {Environment}"
       StageName: !Ref Environment
 
-  CDRDomainName:
+  DomainName:
     Type: AWS::ApiGateway::DomainName
     Properties:
       CertificateArn: !Ref Certificate
-      DomainName: !Ref DomainName
+      DomainName: !Sub "{GitHash}.{APIDomainName}"
 
-  CDRBasePathMapping:
+  BasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     Properties:
-      DomainName: !Ref CDRDomainName
-      RestApiId: !Ref CDRGateway
+      DomainName: !Ref DomainName
+      RestApiId: !Ref Gateway
       Stage: !Ref Environment
 
-  CDRRoute53Record:
+  Route53Record:
     Type: AWS::Route53::RecordSetGroup
     Properties:
       HostedZoneId: !Ref HostedZoneId
       RecordSets:
-      - Type: A
-        Name: !Ref DomainName
+      - Type: CNAME
+        Name: !Sub "{GitHash}.{APIDomainName}"
         AliasTarget:
-          HostedZoneId: !GetAtt CDRDomainName.DistributionHostedZoneId
-          DNSName: !GetAtt CDRDomainName.DistributionDomainName
+          HostedZoneId: !GetAtt DomainName.DistributionHostedZoneId
+          DNSName: !GetAtt DomainName.DistributionDomainName
 
   ############ Layers  ############
 
-  VersentCoreCDRLayer:
+  DemoCoreLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
-        LayerName: versent-cdr-core
-        Description: Core classes and objects for CDR
+        LayerName: !Sub "CoreLayer-{GitHash}"
+        Description: Core classes and objects for Serverless Day Demo 
         ContentUri: ../src/layers
         CompatibleRuntimes:
           - python3.7
@@ -64,986 +67,32 @@ Resources:
         LicenseInfo: 'MIT'
         RetentionPolicy: Retain
 
-  ############ banking/accounts  ############
+  ############ /create_pdf ############
 
-  BankingAccounts:
+  CreatePDF:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/banking_accounts
+      CodeUri: ./src/functions/create_pdf
       Handler: app.lambda_handler
       Runtime: python3.8
-      Timeout: 900
+      Timeout: 60
+      FunctionName: !Sub "CreatePDF_{GitHash}"
       Environment:
         Variables:
           Logging: DEBUG
       Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        CDRGatewayApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts
-            Method: GET
-      Role: !GetAtt BankingAccountsExecutionRole.Arn
-
-  BankingAccountsExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/balances  ############
-
-  BankingAccountsBalances:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_balances
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/balances
-            Method: GET
-        post:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/balances
-            Method: POST
-      Role: !GetAtt BankingAccountsBalancesExecutionRole.Arn
-
-  BankingAccountsBalancesExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/{accountid}/balance  ############
-
-  BankingAccountsAccountIdBalance:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid_balance
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}/balance
-            Method: GET
-      Role: !GetAtt BankingAccountsAccountIdBalanceExecutionRole.Arn
-
-  BankingAccountsAccountIdBalanceExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/{accountid}  ############
-
-  BankingAccountsAccountId:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}
-            Method: GET
-      Role: !GetAtt BankingAccountsAccountIdExecutionRole.Arn
-
-  BankingAccountsAccountIdExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/{accountid}/transactions  ############
-
-  BankingAccountsAccountIdTransactions:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid_transactions
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}/transactions
-            Method: GET
-      Role: !GetAtt BankingAccountsAccountIdTransactionsExecutionRole.Arn
-
-  BankingAccountsAccountIdTransactionsExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/{accountid}/transactions/{transactionId}  ############
-
-  BankingAccountsAccountIdTransactionsTransactionId:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid_transactions_transactionid
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}/transactions/{transactionId}
-            Method: GET
-      Role: !GetAtt BankingAccountsAccountIdTransactionsTransactionIdExecutionRole.Arn
-
-  BankingAccountsAccountIdTransactionsTransactionIdExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/{accountid}/direct-debits  ############
-
-  BankingAccountsAccountIdDirectDebt:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid_direct_debits
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}/direct-debits
-            Method: GET
-      Role: !GetAtt BankingAccountsAccountIdDirectDebtExecutionRole.Arn
-
-  BankingAccountsAccountIdDirectDebtExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ /banking/accounts/direct-debits  ############
-
-  BankingAccountsDirectDebt:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_direct_debits
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/direct-debits
-            Method: GET
-        post:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/direct-debits
-            Method: POST
-      Role: !GetAtt BankingAccountsDirectDebtExecutionRole.Arn
-
-  BankingAccountsDirectDebtExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-############ /banking/accounts/{accountId}/payments/scheduled  ############
-
-  BankingAccountsAccoundIdPaymentsScheduled:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_accounts_accountid_payments_scheduled
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/accounts/{accountId}/payments/scheduled
-            Method: GET
-      Role: !GetAtt BankingAccountsAccoundIdPaymentsScheduledExecutionRole.Arn
-
-  BankingAccountsAccoundIdPaymentsScheduledExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-############ /banking/payments/scheduled  ############
-
-  BankingPaymentsScheduled:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_payments_scheduled
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/payments/scheduled
-            Method: GET
-        post:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/payments/scheduled
-            Method: POST
-      Role: !GetAtt BankingPaymentsScheduledExecutionRole.Arn
-
-  BankingPaymentsScheduledExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-  ############ banking/payees  ############
-
-  BankingPayees:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_payees
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        Get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/payees
-            Method: GET
-      Role: !GetAtt BankingPayeesExecutionRole.Arn
-
-  BankingPayeesExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-############ /banking/payees/{payeeId}  ############
-
-  BankingPayeesPayeeId:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_payee_detail
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/payees/{payeeId}
-            Method: GET
-      Role: !GetAtt BankingPayeesPayeeIdExecutionRole.Arn
-
-  BankingPayeesPayeeIdExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-############ /banking/products  ############
-
-  BankingProducts:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_products
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/products
-            Method: GET
-      Role: !GetAtt BankingProductsExecutionRole.Arn
-
-  BankingProductsExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-############ /banking/products/{productid}  ############
-
-  BankingProductsProductId:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/banking_products_productid
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/banking/products/{productId}
-            Method: GET
-      Role: !GetAtt BankingProductsProductIdExecutionRole.Arn
-
-  BankingProductsProductIdExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-
-############ /common/customer  ############
-
-  CommonCustomer:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/common_customer
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/common/customer
-            Method: GET
-      Role: !GetAtt CommonCustomerExecutionRole.Arn
-
-  CommonCustomerExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-########### /common/customer/detail  ############
-
-  CommonCustomerDetail:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/common_customer_detail
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/common/customer/detail
-            Method: GET
-      Role: !GetAtt CommonCustomerDetailExecutionRole.Arn
-
-  CommonCustomerDetailExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-########### /discovery/status  ############
-
-  CommonDiscoveryDetail:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/discovery_status
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/common/discovery/status
-            Method: GET
-      Role: !GetAtt CommonDiscoveryDetailExecutionRole.Arn
-
-  CommonDiscoveryDetailExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-########### /discovery/outages  ############
-
-  CommonDiscoveryOutages:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/discovery_outages
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
-      Tracing: Active
-      Events:
-        get:
-          Type: Api
-          Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/common/discovery/outages
-            Method: GET
-      Role: !GetAtt CommonDiscoveryOutagesExecutionRole.Arn
-
-  CommonDiscoveryOutagesExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action:
-              - sts:AssumeRole
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-      Policies:
-        - PolicyName: retrieve-meta-data-step
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'ssm:*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'xray:PutTraceSegments'
-                  - 'xray:PutTelemetryRecords'
-                Resource: '*'
-
-########### /admin/register/metadata  ############
-
-  CommonAdminRegisterMetadata:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./src/functions/admin_register_metadata
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 900
-      Environment:
-        Variables:
-          Logging: DEBUG
-      Layers:
-      - !Ref VersentCoreCDRLayer
+        - !Ref DemoCoreLayer
       Tracing: Active
       Events:
         post:
           Type: Api
           Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/admin/register/metadata
+            RestApiId: !Ref Gateway
+            Path: /create_pdf
             Method: POST
-      Role: !GetAtt CommonAdminRegisterMetadataExecutionRole.Arn
+      Role: !GetAtt CreatePDFExecutionRole.Arn
 
-  CommonAdminRegisterMetadataExecutionRole:
+  CreatePDFExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       ManagedPolicyArns:
@@ -1058,44 +107,49 @@ Resources:
               Service:
                 - lambda.amazonaws.com
       Policies:
-        - PolicyName: retrieve-meta-data-step
+        - PolicyName: create_pdf
           PolicyDocument:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
                 Action:
                   - 'ssm:*'
+                  - 's3:ListBucket'
+                  - 's3:ListBucket*'
+                  - 's3:PutObject'
+                  - 's3:PutObjectAcl'
                   - 'dynamodb:DescribeTable'
                   - 'dynamodb:Query'
                   - 'xray:PutTraceSegments'
                   - 'xray:PutTelemetryRecords'
                 Resource: '*'
 
-########### /admin/metrics  ############
+  ############ /delete_pdf ############
 
-  CommonAdminMetrics:
+  DeletePDF:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: ./src/functions/admin_metrics
+      CodeUri: ./src/functions/delete_pdf
       Handler: app.lambda_handler
       Runtime: python3.8
-      Timeout: 900
+      Timeout: 60
+      FunctionName: !Sub "DeletePDF_{GitHash}"
       Environment:
         Variables:
           Logging: DEBUG
       Layers:
-      - !Ref VersentCoreCDRLayer
+        - !Ref DemoCoreLayer
       Tracing: Active
       Events:
-        get:
+        post:
           Type: Api
           Properties:
-            RestApiId: !Ref CDRGateway
-            Path: /cds-au/v1/common/admin/metrics
-            Method: GET
-      Role: !GetAtt CommonAdminMetricsExecutionRole.Arn
+            RestApiId: !Ref Gateway
+            Path: /delete_pdf
+            Method: POST
+      Role: !GetAtt DeletePDFExecutionRole.Arn
 
-  CommonAdminMetricsExecutionRole:
+  DeletePDFExecutionRole:
     Type: AWS::IAM::Role
     Properties:
       ManagedPolicyArns:
@@ -1110,7 +164,126 @@ Resources:
               Service:
                 - lambda.amazonaws.com
       Policies:
-        - PolicyName: retrieve-meta-data-step
+        - PolicyName: delete_pdf
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:*'
+                  - 's3:ListBucket'
+                  - 's3:ListBucket*'
+                  - 's3:DeleteObject'
+                  - 's3:DeleteObjectVersion'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:Query'
+                  - 'xray:PutTraceSegments'
+                  - 'xray:PutTelemetryRecords'
+                Resource: '*'
+
+  ############ /get_pdf ############
+
+  GetPDF:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/functions/get_pdf
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 60
+      FunctionName: !Sub "GetPDF_{GitHash}"
+      Environment:
+        Variables:
+          Logging: DEBUG
+      Layers:
+        - !Ref DemoCoreLayer
+      Tracing: Active
+      Events:
+        post:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Gateway
+            Path: /get_pdf
+            Method: POST
+      Role: !GetAtt GetPDFExecutionRole.Arn
+      BinaryMediaTypes:
+        - "application~1pdf"
+
+  GetPDFExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: get_pdf
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:*'
+                  - 's3:ListBucket'
+                  - 's3:ListBucket*'
+                  - 's3:GetObject'
+                  - 's3:GetObject*'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:ListTables'
+                  - 'dynamodb:GetItem'
+                  - 'xray:PutTraceSegments'
+                  - 'xray:PutTelemetryRecords'
+                Resource: '*'
+
+  ############ /list_pdf ############
+
+  ListPDF:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./src/functions/list_pdf
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 60
+      FunctionName: !Sub "ListPDF_{GitHash}"
+      Environment:
+        Variables:
+          Logging: DEBUG
+      Layers:
+      - !Ref DemoCoreLayer
+      Tracing: Active
+      Events:
+        post:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Gateway
+            Path: /list_pdf
+            Method: POST
+      Role: !GetAtt ListPDFExecutionRole.Arn
+
+  ListPDFExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: list_pdf
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -1119,6 +292,8 @@ Resources:
                   - 'ssm:*'
                   - 'dynamodb:DescribeTable'
                   - 'dynamodb:Query'
+                  - 'dynamodb:ListTables'
+                  - 'dynamodb:GetItem'
                   - 'xray:PutTraceSegments'
                   - 'xray:PutTelemetryRecords'
                 Resource: '*'

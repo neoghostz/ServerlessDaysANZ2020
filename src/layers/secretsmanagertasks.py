@@ -1,22 +1,22 @@
 import sys
 import logging
-import secretsmanager
 import uuid
 import os
 import json
 import base64
 import logging
 import botocore.errorfactory
+from secretsmanager import secretsmanager
 from botocore.exceptions import ClientError
 
 
 class secretsmanagertasks:
 
-    def __init__(self, region):
+    def __init__(self):
         logging.basicConfig(format='%(asctime)s [%(levelname)s] (%(funcName)s) %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
         self.logger = logging.getLogger("Demo/SecretsManagerTasks")
         self.logger.setLevel(int(os.environ.get("Logging", logging.DEBUG)))
-        self.sm = secretsmanager.secretsmanager(region)
+        self.sm = secretsmanager()
 
     def generate_password(self):
         password = self.sm.get_random_password()
@@ -100,7 +100,7 @@ class secretsmanagertasks:
                 self.logger.error("Failed to Rotate Secret {} by Lambda {} with Error {}".format(name, lambdaarn, err))
                 sys.exit(1)
         else:
-            self.logger.error("Secret {} does not exist.".format(name))
+            self.logger.error(f"Secret {name} does not exist.")
             sys.exit(1)
 
         self.logger.debug(json.dumps(response, default=str, sort_keys=True, indent=4, separators=(',', ': ')))
@@ -114,14 +114,14 @@ class secretsmanagertasks:
                 VersionId=versionid
             )
         except ClientError as err:
-            self.logger.error("Failed to retreive Secret {}.".format(name))
+            self.logger.error(f"Failed to retreive Secret {name}.")
             sys.exit(1)
-
-        if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
-            if "SecretString" in response:
-                return response["SecretString"]
-            else:
-                return response["SecretBinary"]
+        else:
+            if response["ResponseMetadata"]["HTTPStatusCode"] == 200:
+                if response.get('SecretString', False):
+                    return response["SecretString"]
+                else:
+                    return response["SecretBinary"]
 
     def get_secret_by_name(self, name):
         secretslist = self.sm.list_secrets()

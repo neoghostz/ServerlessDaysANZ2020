@@ -1,8 +1,11 @@
-class DynamoDB:
+import boto3
+
+
+class dynamodb:
     
-    def __init__(self, session, table_name):
-        self.client = session.client('s3')
-        self.resource = session.resource('dynamodb')
+    def __init__(self, table_name):
+        self.client = boto3.client('s3')
+        self.resource = boto3.resource('dynamodb')
         self.table = self.resource.Table(table_name)
 
     def delete_item(self):
@@ -23,3 +26,28 @@ class DynamoDB:
 
         return response
 
+    def put_item(self, item):
+        response = self.table.put_item(
+            Item=Item
+        )
+
+        return response
+
+    def query(self, key, value):
+        response = self.table.query(
+            KeyConditionExpression=Key(key).eq(value)
+        )
+
+        return response
+
+    def scan(self):
+        items = []
+        response = self.table.scan()
+        items.extend(response.get('Items', []))
+        while reponse['LastEvaluatedKey']:
+            response = self.table.scan(
+                ExclusiveStartKey=response['LastEvaluatedKey']
+            )
+            items.extend(response.get('Items', []))
+        
+        return items

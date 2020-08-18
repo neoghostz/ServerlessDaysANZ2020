@@ -26,8 +26,6 @@ class GeneratePDF():
     def __init__(self, event, context):
         self.logger = logging.getLogger(event.get('resource', 'Generic'))
         self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
-        self.event = event
-        self.context = context
         self.status = None
         self.payload = None
         self.pdf = None

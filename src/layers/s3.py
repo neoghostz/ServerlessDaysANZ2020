@@ -1,8 +1,11 @@
-class S3:
+import boto3
 
-    def __init__(self, session):
-        self.client = session.client('s3')
-        self.resource = session.resource('s3')
+
+class s3:
+
+    def __init__(self):
+        self.client = boto3.client('s3')
+        self.resource = boto3.resource('s3')
 
     def create_multipart_upload(self, ACL, Bucket, ContentType, Key, ServerSideEncryption, SSEKMSKeyId, Metadata={}):
         response = self.client.create_multipart_upload(
@@ -35,7 +38,7 @@ class S3:
 
         return response
 
-    def put_object(self, ):
+    def put_object(self, ACL, Body, BUcket, ContentLength, Key, ServerSideEncryption, SSECustomerKey, SSEKMSKeyId):
         response = self.client.put_object(
             ACL=ACL,
             Body=Body,

@@ -18,15 +18,14 @@ class Endpoint:
         self.logger = logging.getLogger(self.event.get('resource', 'Generic'))
         self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
 
-    def build_headers(self, payload):
+    def build_headers(self, payload, content_type):
         headers = {
             'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json',
-            'x-v': '',
-            'x-fapi-interaction-id': '',
+            'Content-Type': content_type,
             'Cache-Control:': 'private',
             'Content-Length': self.calc_content_length(payload),
-            'Date': self.calc_date()
+            'Date': self.calc_date(),
+            'ETag': self.calc_etag(payload)
         }
 
         return headers
@@ -34,13 +33,16 @@ class Endpoint:
     def calc_content_length(self, payload):
         return sys.getsizeof(payload)
 
+    def calc_etag(self, payload):
+        return hashlib.md5(payload).hexdigest()
+
     def calc_date(self):
         return datetime.now(tz=tz.gettz('Australia/Sydney')).strftime('%A, %d. %B %Y %I:%M%p')
 
-    def build_response(self, status_code=200, payload={}):
+    def build_response(self, status_code=200, payload={}, content_type='application/json'):
         response = {
             'statusCode': status_code,
-            'headers': self.build_headers(payload),
+            'headers': self.build_headers(payload, content_type),
             'body': json.dumps(payload),
         }
         self.logger.debug(json.dumps(response))
