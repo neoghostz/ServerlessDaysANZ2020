@@ -1,3 +1,5 @@
+import os
+import logging
 from dynamodb import dynamodb
 from botocore.exceptions import ClientError
 from APIExceptions import DynamoDBWriteFailure, DynamoDBReadFailure

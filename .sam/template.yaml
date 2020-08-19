@@ -13,27 +13,60 @@ Parameters:
     Default: serverlessdays.elendel.com.au
   Certificate:
     Type: String
-    Default: arn:aws:acm:us-east-1:293499315857:certificate/e6487f1e-46cc-47ac-a0da-c22ae565bef8
+    Default: arn:aws:acm:us-east-1:801604450668:certificate/30ada2b1-e581-4379-a0e5-4bf3cbad7bb4
   HostedZoneId:
     Type: String
-    Default: Z11STCZAFY5AJJ
+    Default: Z18PP28MZC4N6M
   HostedZoneName:
     Type: String
     Default: elendel.com.au
+  DynamoDBStackImport:
+    Type: String
+    Default: ServerlessDaysANZ-Demo-DynamoDB-DynamoDB-PDFTable
+  S3StackImport:
+    Type: String
+    Default: ServerlessDaysANZ-Demo-DynamoDB-DynamoDB-PDFTable
+  KMSStackImport:
+    Type: String
+    Default: ServerlessDaysANZ-Demo-S3-KMS-Key-Arn
+  Logging:
+    Type: String
+    Default: DEBUG
+
+Globals:
+  Function:
+    Runtime: python3.8
+    Timeout: 60
+    Handler: app.lambda_handler
+    Tracing: Active
+    Environment:
+      Variables:
+        Logging: !Ref Logging
+        Bucket: 
+          Fn::ImportValue:
+            !Sub "${S3StackImport}"
+        KMSKey: 
+          Fn::ImportValue:
+            !Sub "${KMSStackImport}"
+        Table: 
+          Fn::ImportValue:
+            !Sub "${DynamoDBStackImport}"
 
 Resources:
 
   Gateway:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub " Gateway {Environment}"
+      Name: !Sub "ServerlessDays Demo API Gateway ${Environment} ${GitHash}"
       StageName: !Ref Environment
+      BinaryMediaTypes:
+      - "application~1pdf"
 
   DomainName:
     Type: AWS::ApiGateway::DomainName
     Properties:
       CertificateArn: !Ref Certificate
-      DomainName: !Sub "{GitHash}.{APIDomainName}"
+      DomainName: !Sub "${GitHash}.${APIDomainName}"
 
   BasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
@@ -47,8 +80,8 @@ Resources:
     Properties:
       HostedZoneId: !Ref HostedZoneId
       RecordSets:
-      - Type: CNAME
-        Name: !Sub "{GitHash}.{APIDomainName}"
+      - Type: A
+        Name: !Sub "${GitHash}.${APIDomainName}"
         AliasTarget:
           HostedZoneId: !GetAtt DomainName.DistributionHostedZoneId
           DNSName: !GetAtt DomainName.DistributionDomainName
@@ -58,7 +91,7 @@ Resources:
   DemoCoreLayer:
       Type: AWS::Serverless::LayerVersion
       Properties:
-        LayerName: !Sub "CoreLayer-{GitHash}"
+        LayerName: !Sub "CoreLayer-${GitHash}"
         Description: Core classes and objects for Serverless Day Demo 
         ContentUri: ../src/layers
         CompatibleRuntimes:
@@ -73,16 +106,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/functions/create_pdf
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 60
-      FunctionName: !Sub "CreatePDF_{GitHash}"
-      Environment:
-        Variables:
-          Logging: DEBUG
+      FunctionName: !Sub "CreatePDF_${GitHash}"
       Layers:
         - !Ref DemoCoreLayer
-      Tracing: Active
       Events:
         post:
           Type: Api
@@ -130,16 +156,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/functions/delete_pdf
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 60
-      FunctionName: !Sub "DeletePDF_{GitHash}"
-      Environment:
-        Variables:
-          Logging: DEBUG
+      FunctionName: !Sub "DeletePDF_${GitHash}"
       Layers:
         - !Ref DemoCoreLayer
-      Tracing: Active
       Events:
         post:
           Type: Api
@@ -188,16 +207,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/functions/get_pdf
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 60
-      FunctionName: !Sub "GetPDF_{GitHash}"
-      Environment:
-        Variables:
-          Logging: DEBUG
+      FunctionName: !Sub "GetPDF_${GitHash}"
       Layers:
         - !Ref DemoCoreLayer
-      Tracing: Active
       Events:
         post:
           Type: Api
@@ -206,8 +218,6 @@ Resources:
             Path: /get_pdf
             Method: POST
       Role: !GetAtt GetPDFExecutionRole.Arn
-      BinaryMediaTypes:
-        - "application~1pdf"
 
   GetPDFExecutionRole:
     Type: AWS::IAM::Role
@@ -249,16 +259,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ./src/functions/list_pdf
-      Handler: app.lambda_handler
-      Runtime: python3.8
-      Timeout: 60
-      FunctionName: !Sub "ListPDF_{GitHash}"
-      Environment:
-        Variables:
-          Logging: DEBUG
+      FunctionName: !Sub "ListPDF_${GitHash}"
       Layers:
       - !Ref DemoCoreLayer
-      Tracing: Active
       Events:
         post:
           Type: Api

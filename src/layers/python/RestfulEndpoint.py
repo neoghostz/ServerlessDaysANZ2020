@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import sys
-import jsonschema
 from APIExceptions import MissingReponseFields, InvalidateSchema
 from datetime import datetime
 from dateutil import tz
@@ -39,12 +38,19 @@ class Endpoint:
     def calc_date(self):
         return datetime.now(tz=tz.gettz('Australia/Sydney')).strftime('%A, %d. %B %Y %I:%M%p')
 
-    def build_response(self, status_code=200, payload={}, content_type='application/json'):
-        response = {
-            'statusCode': status_code,
-            'headers': self.build_headers(payload, content_type),
-            'body': json.dumps(payload),
-        }
+    def build_response(self, status_code=200, payload={}, content_type='application/json', error_type=None):
+        if status_code in [200, 304]:
+            response = {
+                'statusCode': status_code,
+                'headers': self.build_headers(payload, content_type),
+                'body': json.dumps(payload),
+            }
+        else:
+            response = {
+                'httpStatus': status_code,
+                'errorMessage': payload,
+                'requestId': self.context.awsRequestId
+            }
         self.logger.debug(json.dumps(response))
         return response
 

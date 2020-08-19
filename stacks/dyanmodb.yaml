@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata: {}
+Description: "PDF Point Table for Serverless Days ANZ 2020"
+Parameters:
+  ReadCapacity:
+    Type: Number
+    Default: 5
+  WriteCapacity:
+    Type: Number
+    Default: 5
+Resources:
+  PDFTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "PDFTable"
+      BillingMode: "PROVISIONED"
+      AttributeDefinitions:
+        - AttributeName: "DocID"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "DocID"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      SSESpecification:
+        SSEEnabled: true
+  WriteCapacityScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MaxCapacity: 10
+      MinCapacity: 5
+      ResourceId: "table/PDFTable"
+      RoleARN: !GetAtt ScalingRole.Arn
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  ScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:UpdateTable"
+                  - "cloudwatch:PutMetricAlarm"
+                  - "cloudwatch:DescribeAlarms"
+                  - "cloudwatch:GetMetricStatistics"
+                  - "cloudwatch:SetAlarmState"
+                  - "cloudwatch:DeleteAlarms"
+                Resource: "*"
+  WriteScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: WriteAutoScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WriteCapacityScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 75.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+
+Outputs:
+  PDFTable:
+    Description: PDF Data DynamoDB Table
+    Value: !Ref PDFTable
+    Export:
+      Name: !Sub "${AWS::StackName}-DynamoDB-PDFTable"
+  PDFTableArn:
+    Description: PDF Data DynamoDB Table Arn
+    Value: !GetAtt PDFTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DynamoDB-PDFTable-Arn"

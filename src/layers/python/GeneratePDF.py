@@ -25,8 +25,6 @@ class PDF(FPDF):
 
 class GeneratePDF():
     def __init__(self, data):
-        self.logger = logging.getLogger('GeneratePDF')
-        self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
         self.pdf = None
         self.data = json.loads(self.validate_payload(data))
 

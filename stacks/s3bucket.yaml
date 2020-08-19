@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata: {}
+Description: "PDF Point Table for Serverless Days ANZ 2020"
+Parameters:
+  ProjectId:
+    Type: String
+    Default: serverlessdays.anz.2020
+Resources:
+  S3ArtifactBucketPolicy:
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Id: SSEAndSSLPolicy
+        Statement:
+        - Action:
+          - 's3:GetObject'
+          - 's3:GetObjectVersion'
+          - 's3:GetBucketVersioning'
+          Condition:
+            Bool:
+              'aws:SecureTransport': false
+          Effect: Allow
+          Principal:
+            AWS: 
+            - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Resource:
+          - !Sub 'arn:aws:s3:::${S3Bucket}'
+          - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+          Sid: WhitelistedGet
+        - Action:
+          - 's3:PutObject'
+          Effect: Allow
+          Principal:
+            AWS: 
+            - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Resource:
+          - !Sub 'arn:aws:s3:::${S3Bucket}/*'
+          Sid: WhitelistedPut
+    Type: 'AWS::S3::BucketPolicy'
+  S3Bucket:
+    Properties:
+      BucketName: !Sub '${AWS::Region}.${AWS::AccountId}.${ProjectId}'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectId} S3Bucket'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !GetAtt KMSKey.Arn
+              SSEAlgorithm: 'aws:kms'
+    Type: 'AWS::S3::Bucket'
+  KMSKey:
+    Type: 'AWS::KMS::Key'
+    Properties:
+      Description: !Sub 'Used by ${ProjectId}'
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: !Sub '${ProjectId}'
+        Statement:
+          - Sid: Allows admin of the key
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action:
+              - 'kms:Create*'
+              - 'kms:Describe*'
+              - 'kms:Enable*'
+              - 'kms:List*'
+              - 'kms:Put*'
+              - 'kms:Update*'
+              - 'kms:Revoke*'
+              - 'kms:Disable*'
+              - 'kms:Get*'
+              - 'kms:Delete*'
+              - 'kms:ScheduleKeyDeletion'
+              - 'kms:CancelKeyDeletion'
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:DescribeKey'
+            Resource: '*'
+  KMSAlias:
+    Type: 'AWS::KMS::Alias'
+    Properties:
+      AliasName: !Sub 'alias/serverlessdays'
+      TargetKeyId: !Ref KMSKey
+
+Outputs:
+  S3Bucket:
+    Description: S3 Bucket for PDF Data
+    Value: !Ref S3Bucket
+    Export:
+      Name: !Sub "${AWS::StackName}-S3-Bucket"
+  S3BucketArn:
+    Description: S3 Bucket for PDF Data Arn
+    Value: !GetAtt S3Bucket.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-S3-Bucket-Arn"
+  KMSKey:
+    Description: KMS Key for PDF Data
+    Value: !Ref KMSKey
+    Export:
+      Name: !Sub "${AWS::StackName}-KMS-Key"
+  KMSKeyArn:
+    Description: KMS Key for PDF Data Arn
+    Value: !GetAtt KMSKey.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-KMS-Key-Arn"

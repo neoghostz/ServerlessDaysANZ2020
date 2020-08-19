@@ -1,7 +1,7 @@
-# CDR Serverless Integration
+# ServerlessDays ANZ 2020 Demo
 
 ## Description
-Serverless CDR API & Integration Layer
+Code Reuse in Serverless APIs with AWS Lambda Layers talk demo application.
 
 
 ## Table of Contents
@@ -24,9 +24,6 @@ Serverless CDR API & Integration Layer
 - AWS Lambda Layers
 
 ## Project Overview
-[Confluence Space](https://versent.atlassian.net/wiki/spaces/CDR/overview)
-
-[Kanban Board](https://versent.atlassian.net/jira/software/projects/CDR/boards/303)
 
 ## Testing
 

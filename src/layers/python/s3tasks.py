@@ -1,4 +1,5 @@
 import os
+import logging
 from s3 import s3
 from APIExceptions import S3ReadFailure, S3WriteFailure
 from botocore.exceptions import ClientError

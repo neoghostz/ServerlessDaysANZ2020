@@ -17,7 +17,7 @@ class CreatePDF(Endpoint):
         self.kmskey = os.environ.get('KMSKey', None)
         self.table = os.environ.get('Table', None)
         self.s3tasks = s3tasks(bucket=self.bucket, kmskey=self.kmskey)
-        self.dynamodbtasks = dynamodbtasks()
+        self.dynamodbtasks = dynamodbtasks(table_name=self.table)
         self.event = event
         self.endpoint_path = "/create_pdf"
         self.context = context
@@ -25,6 +25,7 @@ class CreatePDF(Endpoint):
         }
         self.header_parameters = {
         }
+        self.logger.debug(self.event['body'])
         self.data = json.loads(self.event.get('body', "[]"))
         super().__init__(self.event, self.context)
 
@@ -38,6 +39,7 @@ class CreatePDF(Endpoint):
             self.status = 400
             response_payload = {
                 'message': repr(err)
+
             }
         except S3WriteFailure as err:
             self.status = 500
