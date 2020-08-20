@@ -44,7 +44,7 @@ class dynamodb:
         items = []
         response = self.table.scan()
         items.extend(response.get('Items', []))
-        while reponse['LastEvaluatedKey']:
+        while 'LastEvaluatedKey' in response:
             response = self.table.scan(
                 ExclusiveStartKey=response['LastEvaluatedKey']
             )

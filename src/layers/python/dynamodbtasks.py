@@ -44,10 +44,11 @@ class dynamodbtasks:
 
     def list_items(self):
         try:
-            self.dynamodb.scan()
+            response = self.dynamodb.scan()
         except ClientError as err:
             self.logger.error(f'Error when attempting to scan table {self.table_name} with error: {err}')
             raise DynamoDBReadFailure(f'Error when attempt to scan table {self.table_name} with error: {err}')
         else:
-            self.logger.debug(f'Successfully scanned {self.table_name}')
+            self.logger.debug(response)
+            self.logger.info(f'Successfully scanned {self.table_name}')
             return response

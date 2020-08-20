@@ -57,4 +57,4 @@ class s3tasks:
             raise S3ReadFailure(f'Error when attempting to get {key} from {self.bucket} with error: {err}')
         else:
             self.logger.debug(f'Successfully read {key} from {self.bucket}')
-            return response
+            return response.get()['Body'].read()

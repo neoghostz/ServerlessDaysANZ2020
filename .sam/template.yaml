@@ -167,8 +167,8 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref Gateway
-            Path: /delete_pdf
-            Method: POST
+            Path: /delete_pdf/{DocID}
+            Method: DELETE
       Role: !GetAtt DeletePDFExecutionRole.Arn
 
   DeletePDFExecutionRole:
@@ -218,8 +218,8 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref Gateway
-            Path: /get_pdf
-            Method: POST
+            Path: /get_pdf/{DocId}
+            Method: GET
       Role: !GetAtt GetPDFExecutionRole.Arn
 
   GetPDFExecutionRole:
@@ -248,10 +248,8 @@ Resources:
                   - 's3:ListBucket*'
                   - 's3:GetObject'
                   - 's3:GetObject*'
-                  - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
-                  - 'dynamodb:ListTables'
-                  - 'dynamodb:GetItem'
+                  - 'kms:decrypt'
+                  - 'kms:DescribeKey'
                   - 'xray:PutTraceSegments'
                   - 'xray:PutTelemetryRecords'
                 Resource: '*'
@@ -271,7 +269,7 @@ Resources:
           Properties:
             RestApiId: !Ref Gateway
             Path: /list_pdf
-            Method: POST
+            Method: GET
       Role: !GetAtt ListPDFExecutionRole.Arn
 
   ListPDFExecutionRole:
@@ -297,9 +295,8 @@ Resources:
                 Action:
                   - 'ssm:*'
                   - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
                   - 'dynamodb:ListTables'
-                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
                   - 'xray:PutTraceSegments'
                   - 'xray:PutTelemetryRecords'
                 Resource: '*'

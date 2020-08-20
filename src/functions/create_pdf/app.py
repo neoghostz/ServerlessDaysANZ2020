@@ -66,7 +66,6 @@ class CreatePDF(Endpoint):
                 'message': 'Success'
             }
         finally:
-            self.logger.error(repr(traceback.print_exc()))
             return self.build_response(self.status, self.response_payload)
 
 def lambda_handler(event, context):

@@ -28,11 +28,8 @@ class s3:
 
         return response
 
-    def get_object(self, Bucket, Key, SSECustomerKey, SSECustomerAlgorithm="AES256"):
-        reponse = self.client.get_object(
-            Bucket=Bucket,
-            Key=Key
-        )
+    def get_object(self, Bucket, Key):
+        response = self.resource.Object(Bucket, Key)
 
         return response
 
