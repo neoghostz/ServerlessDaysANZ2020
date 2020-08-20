@@ -16,10 +16,11 @@ class dynamodbtasks:
 
     def write_item(self, key, payload):
         item = {
-            key: payload
+            'DocID': key,
+            'Payload': payload
         }
         try:
-            self.dynamodb.put_item(
+            response = self.dynamodb.put_item(
                 item=item
             )
         except ClientError as err:

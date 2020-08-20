@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import sys
+import hashlib
 from APIExceptions import MissingReponseFields, InvalidateSchema
 from datetime import datetime
 from dateutil import tz
@@ -11,7 +12,6 @@ class Endpoint:
     def __init__(self, event, context):
         self.event = event
         self.context = context
-        self.data = None
         self.endpoint_path = None
         self.required_fields = []
         self.logger = logging.getLogger(self.event.get('resource', 'Generic'))
@@ -24,7 +24,6 @@ class Endpoint:
             'Cache-Control:': 'private',
             'Content-Length': self.calc_content_length(payload),
             'Date': self.calc_date(),
-            'ETag': self.calc_etag(payload)
         }
 
         return headers
@@ -33,7 +32,7 @@ class Endpoint:
         return sys.getsizeof(payload)
 
     def calc_etag(self, payload):
-        return hashlib.md5(payload).hexdigest()
+        return hashlib.md5(str(payload)).hexdigest()
 
     def calc_date(self):
         return datetime.now(tz=tz.gettz('Australia/Sydney')).strftime('%A, %d. %B %Y %I:%M%p')
@@ -49,7 +48,7 @@ class Endpoint:
             response = {
                 'httpStatus': status_code,
                 'errorMessage': payload,
-                'requestId': self.context.awsRequestId
+                'requestId': self.context.aws_request_id
             }
         self.logger.debug(json.dumps(response))
         return response
@@ -57,7 +56,7 @@ class Endpoint:
     def validate_response(self, response):
         if response.get('statusCode') == 200:
             if any(x for x in self.required_fields not in response):
-                raise MissingReponseFields(f'Missing key fields: {any(x for x in ["data", "links"] not in response)}')
+                raise MissingReponseFields(f'Missing key fields: {any(x for x in self.required_fields not in response)}')
 
     def validate_headers(self, headers):
         if headers.get('Content-Type', None) not in ["application/json"]:

@@ -11,7 +11,7 @@ logger.setLevel(os.environ.get('Logging', logging.DEBUG))
 class ListPDF(Endpoint):
     def __init__(self, event, context):
         self.event = event
-        self.endpoint_path = "/create_pdf"
+        self.endpoint_path = "/list_pdf"
         self.context = context
         self.table = os.environ.get('Table', None)
         self.dynamodbtasks = dynamodbtasks(table_name=self.table)

@@ -59,8 +59,8 @@ samPackage: samBuild
 .PHONY: samPackage
 
 samDeploy: samPackage
-	sam deploy --template-file ./build/sam-template.yaml --stack-name $(PROJECT)-$(GITSHORTHASH) --capabilities CAPABILITY_IAM --region $(REGION)
+	sam deploy --template-file ./build/sam-template.yaml --stack-name $(PROJECT)-$(GITSHORTHASH) --capabilities CAPABILITY_IAM --region $(REGION) --parameter-overrides GitHash=$(GITSHORTHASH)
 .PHONY: samDeploy
 
 samDestroy:
-	aws cloudformation delete-stack --stack-name $(PROJECT)-$(GITSHORTHASH) --region ap-southeast-2 --profile saml
+	aws cloudformation delete-stack --stack-name $(PROJECT)-$(GITSHORTHASH) --region ap-southeast-2

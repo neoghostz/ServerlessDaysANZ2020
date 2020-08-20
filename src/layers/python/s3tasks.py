@@ -16,7 +16,7 @@ class s3tasks:
         self.s3 = s3()
 
     def build_acl(self, acl):
-        valid_acl = {
+        valid_acl = [
             'private',
             'public-read',
             'public-read-write',
@@ -24,11 +24,12 @@ class s3tasks:
             'aws-exec-read',
             'bucket-owner-read',
             'bucket-owner-full-control'
-        }
+        ]
 
-        return valid_acl.get(acl, 'private')
+        return acl if acl in valid_acl else 'private'
 
     def write_file(self, body, key, acl='private'):
+        self.logger.debug(f'Starting S3Tasks write_file for {key} in bucket {self.bucket}')
         try:
             response = self.s3.put_object(
                 ACL=self.build_acl(acl),
@@ -45,6 +46,7 @@ class s3tasks:
             return response
 
     def get_file(self, key):
+        self.logger.debug(f'Starting S3Tasks get_file for {key} in bucket {self.bucket}')
         try:
             response = self.s3.get_object(
                 Bucket=self.bucket,

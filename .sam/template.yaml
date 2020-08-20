@@ -25,7 +25,7 @@ Parameters:
     Default: ServerlessDaysANZ-Demo-DynamoDB-DynamoDB-PDFTable
   S3StackImport:
     Type: String
-    Default: ServerlessDaysANZ-Demo-DynamoDB-DynamoDB-PDFTable
+    Default: ServerlessDaysANZ-Demo-S3-S3-Bucket
   KMSStackImport:
     Type: String
     Default: ServerlessDaysANZ-Demo-S3-KMS-Key-Arn
@@ -144,8 +144,11 @@ Resources:
                   - 's3:ListBucket*'
                   - 's3:PutObject'
                   - 's3:PutObjectAcl'
+                  - 'kms:encrypt'
+                  - 'kms:DescribeKey'
+                  - 'kms:GenerateDataKey'
                   - 'dynamodb:DescribeTable'
-                  - 'dynamodb:Query'
+                  - 'dynamodb:PutItem'
                   - 'xray:PutTraceSegments'
                   - 'xray:PutTelemetryRecords'
                 Resource: '*'

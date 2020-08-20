@@ -28,7 +28,7 @@ class dynamodb:
 
     def put_item(self, item):
         response = self.table.put_item(
-            Item=Item
+            Item=item
         )
 
         return response

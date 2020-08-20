@@ -1,4 +1,4 @@
 import uuid
 
 def unquie_uuid():
-    return uuid.uuid4()
+    return str(uuid.uuid4())
