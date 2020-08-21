@@ -1,7 +1,9 @@
 import os
 import logging
+import json
 from s3 import s3
-from APIExceptions import S3ReadFailure, S3WriteFailure
+from util import json_serial
+from APIExceptions import S3ReadFailure, S3WriteFailure, S3DeleteFailure
 from botocore.exceptions import ClientError
 
 
@@ -40,9 +42,10 @@ class s3tasks:
             )
         except ClientError as err:
             self.logger.error(f'Error when attempting to write {key} to {self.bucket} with error: {err}')
-            raise S3WriteFailure(f'Error when attempt to write {key} to {self.bucket} with error: {err}')
+            raise S3DeleteFailure(f'Error when attempt to write {key} to {self.bucket} with error: {err}')
         else:
-            self.logger.debug(f'Successfully wrote {key} to {self.bucket}')
+            self.logger.info(f'Successfully wrote {key} to {self.bucket}')
+            self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))
             return response
 
     def get_file(self, key):
@@ -56,5 +59,22 @@ class s3tasks:
             self.logger.error(f'Error when attempting to get {key} from {self.bucket} with error: {err}')
             raise S3ReadFailure(f'Error when attempting to get {key} from {self.bucket} with error: {err}')
         else:
-            self.logger.debug(f'Successfully read {key} from {self.bucket}')
+            self.logger.info(f'Successfully read {key} from {self.bucket}')
+            self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))
             return response.get()['Body'].read()
+
+
+    def delete_file(self, key):
+        self.logger.debug(f'Starting S3Tasks delete_file for {key} in bucket {self.bucket}')
+        try:
+            response = self.s3.delete_object(
+                Bucket=self.bucket,
+                Key=key
+            )
+        except ClientError as err:
+            self.logger.error(f'Error when attempting to delete {key} from {self.bucket} with error: {err}')
+            raise S3ReadFailure(f'Error when attempting to delete {key} from {self.bucket} with error: {err}')
+        else:
+            self.logger.info(f'Successfully deleted {key} from {self.bucket}')
+            self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))
+            return response

@@ -22,9 +22,17 @@ class S3ReadFailure(Exception):
     pass
 
 
+class S3DeleteFailure(Exception):
+    pass
+
+
 class DynamoDBWriteFailure(Exception):
     pass
 
 
 class DynamoDBReadFailure(Exception):
+    pass
+
+
+class DynamoDBDeleteFailure(Exception):
     pass

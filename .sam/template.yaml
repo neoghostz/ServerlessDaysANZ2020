@@ -167,7 +167,7 @@ Resources:
           Type: Api
           Properties:
             RestApiId: !Ref Gateway
-            Path: /delete_pdf/{DocID}
+            Path: /delete_pdf/{DocId}
             Method: DELETE
       Role: !GetAtt DeletePDFExecutionRole.Arn
 

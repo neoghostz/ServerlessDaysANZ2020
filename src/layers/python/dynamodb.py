@@ -8,7 +8,7 @@ class dynamodb:
         self.resource = boto3.resource('dynamodb')
         self.table = self.resource.Table(table_name)
 
-    def delete_item(self):
+    def delete_item(self, Key):
         response = self.table.delete_item(
             Key=Key,
             ReturnValues='NONE',
