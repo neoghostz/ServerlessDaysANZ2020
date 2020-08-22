@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-import json
 import traceback
 from s3tasks import s3tasks
 from dynamodbtasks import dynamodbtasks
@@ -56,6 +54,7 @@ class DeletePDF(Endpoint):
             }
         finally:
             return self.build_response(self.status, self.response_payload)
+
 
 def lambda_handler(event, context):
     return DeletePDF(event, context).response()

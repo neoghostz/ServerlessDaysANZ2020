@@ -4,11 +4,11 @@ import json
 from dynamodb import dynamodb
 from util import json_serial
 from botocore.exceptions import ClientError
-from APIExceptions import DynamoDBWriteFailure, DynamoDBReadFailure
+from APIExceptions import DynamoDBWriteFailure, DynamoDBReadFailure, DynamoDBDeleteFailure
 
 
 class dynamodbtasks:
-    
+
     def __init__(self, table_name):
         logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s')
         self.logger = logging.getLogger('Demo/DynamoDBTasks')
@@ -37,7 +37,7 @@ class dynamodbtasks:
     def get_item(self, key):
         self.logger.info('Starting DynamoDB Tasks Get Item')
         try:
-            self.dynamodb.get_item(
+            response = self.dynamodb.get_item(
                 Key=key
             )
         except ClientError as err:

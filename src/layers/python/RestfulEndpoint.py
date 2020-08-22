@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import hashlib
-from APIExceptions import MissingReponseFields, InvalidateSchema
+from APIExceptions import MissingReponseFields
 from datetime import datetime
 from dateutil import tz
 

@@ -1,11 +1,6 @@
-import json
 import logging
 import os
-import sys
-import hashlib
-import base64
 from datetime import datetime
-from dateutil import tz
 from fpdf import FPDF
 
 
@@ -17,12 +12,11 @@ class PDF(FPDF):
         self.cell(80)
         self.cell(30, 10, 'Demo PDF Generation', 0, 0, 'C')
         self.ln(20)
-        
 
     def zero_creation_date(self):
         time_tuple = (1969, 12, 31, 19, 00, 00)
         zero = datetime(*time_tuple)
-        
+
         return zero
 
     def footer(self):

@@ -2,7 +2,7 @@ import boto3
 
 
 class dynamodb:
-    
+
     def __init__(self, table_name):
         self.client = boto3.client('s3')
         self.resource = boto3.resource('dynamodb')
@@ -33,13 +33,6 @@ class dynamodb:
 
         return response
 
-    def query(self, key, value):
-        response = self.table.query(
-            KeyConditionExpression=Key(key).eq(value)
-        )
-
-        return response
-
     def scan(self):
         items = []
         response = self.table.scan()
@@ -49,5 +42,5 @@ class dynamodb:
                 ExclusiveStartKey=response['LastEvaluatedKey']
             )
             items.extend(response.get('Items', []))
-        
+
         return items

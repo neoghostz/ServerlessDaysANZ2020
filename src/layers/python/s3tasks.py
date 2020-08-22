@@ -42,7 +42,7 @@ class s3tasks:
             )
         except ClientError as err:
             self.logger.error(f'Error when attempting to write {key} to {self.bucket} with error: {err}')
-            raise S3DeleteFailure(f'Error when attempt to write {key} to {self.bucket} with error: {err}')
+            raise S3WriteFailure(f'Error when attempt to write {key} to {self.bucket} with error: {err}')
         else:
             self.logger.info(f'Successfully wrote {key} to {self.bucket}')
             self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))
@@ -63,7 +63,6 @@ class s3tasks:
             self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))
             return response.get()['Body'].read()
 
-
     def delete_file(self, key):
         self.logger.debug(f'Starting S3Tasks delete_file for {key} in bucket {self.bucket}')
         try:
@@ -73,7 +72,7 @@ class s3tasks:
             )
         except ClientError as err:
             self.logger.error(f'Error when attempting to delete {key} from {self.bucket} with error: {err}')
-            raise S3ReadFailure(f'Error when attempting to delete {key} from {self.bucket} with error: {err}')
+            raise S3DeleteFailure(f'Error when attempting to delete {key} from {self.bucket} with error: {err}')
         else:
             self.logger.info(f'Successfully deleted {key} from {self.bucket}')
             self.logger.debug(json.dumps(response, default=json_serial, sort_keys=True, indent=4, separators=(',', ': ')))

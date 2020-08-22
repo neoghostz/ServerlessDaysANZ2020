@@ -1,18 +1,16 @@
 import logging
 import os
-import sys
-import json
 import traceback
 from dynamodbtasks import dynamodbtasks
 from RestfulEndpoint import Endpoint
 from APIExceptions import DynamoDBReadFailure
+
 
 class ListPDF(Endpoint):
     def __init__(self, event, context):
         logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s')
         self.logger = logging.getLogger('Demo/ListPDF')
         self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
-        self.logger.debug(json.dumps(event))
         self.event = event
         self.context = context
         super().__init__(self.event, self.context)
@@ -36,7 +34,6 @@ class ListPDF(Endpoint):
             self.response_payload = {
                 'message': repr(err)
             }
-            error_type = 'ReadError'
         except Exception as err:
             self.status = 500
             self.logger.error(repr(traceback.print_exc()))
@@ -50,6 +47,7 @@ class ListPDF(Endpoint):
             }
         finally:
             return self.build_response(self.status, self.response_payload)
+
 
 def lambda_handler(event, context):
     return ListPDF(event, context).response()

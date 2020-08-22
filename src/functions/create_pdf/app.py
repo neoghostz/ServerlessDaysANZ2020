@@ -1,8 +1,7 @@
 import logging
 import os
-import json
-import sys
 import traceback
+import json
 from GeneratePDF import GeneratePDF
 from s3tasks import s3tasks
 from util import unquie_uuid
@@ -10,12 +9,12 @@ from APIExceptions import S3WriteFailure, DynamoDBWriteFailure
 from dynamodbtasks import dynamodbtasks
 from RestfulEndpoint import Endpoint
 
+
 class CreatePDF(Endpoint):
     def __init__(self, event, context):
         logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s')
         self.logger = logging.getLogger('Demo/CreatePDF')
         self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
-        self.logger.debug(json.dumps(event))
         self.event = event
         self.context = context
         super().__init__(self.event, self.context)
@@ -27,13 +26,7 @@ class CreatePDF(Endpoint):
         self.endpoint_path = "/create_pdf"
         self.status = None
         self.response_payload = None
-        self.query_parameters = {
-        }
-        self.header_parameters = {
-        }
-        self.logger.debug(self.event)
         self.data = json.loads(self.event.get('body', "{}"))
-        self.logger.debug(self.data)
 
     def response(self):
         try:
@@ -67,6 +60,7 @@ class CreatePDF(Endpoint):
             }
         finally:
             return self.build_response(self.status, self.response_payload)
+
 
 def lambda_handler(event, context):
     return CreatePDF(event, context).response()

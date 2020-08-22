@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-import json
 import traceback
 from s3tasks import s3tasks
 from RestfulEndpoint import Endpoint
@@ -28,7 +26,6 @@ class GetPDF(Endpoint):
         self.kmskey = os.environ.get('KMSKey', None)
         self.s3tasks = s3tasks(bucket=self.bucket, kmskey=self.kmskey)
 
-
     def response(self):
         try:
             document = self.s3tasks.get_file(self.DocId)
@@ -43,7 +40,6 @@ class GetPDF(Endpoint):
             self.response_payload = {
                 'message': repr(err)
             }
-            error_type = 'ReadError'
         except Exception as err:
             self.status = 500
             self.logger.error(repr(traceback.print_exc()))
@@ -85,6 +81,7 @@ class GetPDF(Endpoint):
         }
 
         return headers
+
 
 def lambda_handler(event, context):
     return GetPDF(event, context).response()
