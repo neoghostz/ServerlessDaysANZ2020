@@ -33,7 +33,4 @@ phases:
   build:
     commands:
       - pipenv lock -r > requirements.txt
-      - sam build -t .sam/transform.yaml -m ./requirements.txt -b ./build -s .
-    finally:
-      - sam package --template-file ./build/template.yaml --s3-bucket $(BUCKET) --s3-prefix $(PROJECT) --output-template-file ./build/sam-template.yaml
-
+      - sam build -t .sam/template.yaml -m ./requirements.txt -b ./build -s .
