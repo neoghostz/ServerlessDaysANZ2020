@@ -61,6 +61,7 @@ Resources:
       StageName: !Ref Environment
       BinaryMediaTypes:
       - "application~1pdf"
+      TracingEnabled: True
 
   DomainName:
     Type: AWS::ApiGateway::DomainName

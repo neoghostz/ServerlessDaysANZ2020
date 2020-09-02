@@ -1,13 +1,13 @@
 import logging
 import os
 import traceback
-from s3tasks import s3tasks
+from S3Tasks import S3Tasks
 from RestfulEndpoint import Endpoint
 from APIExceptions import DynamoDBReadFailure
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
 
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s')
-logger = logging.getLogger('Demo/GetPDF')
-logger.setLevel(os.environ.get('Logging', logging.DEBUG))
+patch_all()
 
 
 class GetPDF(Endpoint):
@@ -24,11 +24,11 @@ class GetPDF(Endpoint):
         self.response_payload = None
         self.bucket = os.environ.get('Bucket', None)
         self.kmskey = os.environ.get('KMSKey', None)
-        self.s3tasks = s3tasks(bucket=self.bucket, kmskey=self.kmskey)
+        self.S3Tasks = S3Tasks(bucket=self.bucket, kmskey=self.kmskey)
 
     def response(self):
         try:
-            document = self.s3tasks.get_file(self.DocId)
+            document = self.S3Tasks.get_file(self.DocId)
         except (ValueError, AttributeError) as err:
             self.status = 400
             self.logger.error(repr(traceback.print_exc()))

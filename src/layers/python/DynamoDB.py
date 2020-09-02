@@ -1,10 +1,9 @@
 import boto3
 
 
-class dynamodb:
+class DynamoDB:
 
     def __init__(self, table_name):
-        self.client = boto3.client('s3')
         self.resource = boto3.resource('dynamodb')
         self.table = self.resource.Table(table_name)
 

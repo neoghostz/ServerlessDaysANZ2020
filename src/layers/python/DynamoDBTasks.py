@@ -1,20 +1,20 @@
 import os
 import logging
 import json
-from dynamodb import dynamodb
+from DynamoDB import DynamoDB
 from util import json_serial
 from botocore.exceptions import ClientError
 from APIExceptions import DynamoDBWriteFailure, DynamoDBReadFailure, DynamoDBDeleteFailure
 
 
-class dynamodbtasks:
+class DynamoDBTasks:
 
     def __init__(self, table_name):
         logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s')
         self.logger = logging.getLogger('Demo/DynamoDBTasks')
         self.logger.setLevel(os.environ.get('Logging', logging.DEBUG))
         self.table_name = table_name
-        self.dynamodb = dynamodb(table_name=self.table_name)
+        self.DynamoDB = DynamoDB(table_name=self.table_name)
 
     def write_item(self, key, payload):
         self.logger.info('Starting DynamoDB Tasks Write Item')
@@ -23,7 +23,7 @@ class dynamodbtasks:
             'Payload': payload
         }
         try:
-            response = self.dynamodb.put_item(
+            response = self.DynamoDB.put_item(
                 item=item
             )
         except ClientError as err:
@@ -37,7 +37,7 @@ class dynamodbtasks:
     def get_item(self, key):
         self.logger.info('Starting DynamoDB Tasks Get Item')
         try:
-            response = self.dynamodb.get_item(
+            response = self.DynamoDB.get_item(
                 Key=key
             )
         except ClientError as err:
@@ -51,7 +51,7 @@ class dynamodbtasks:
     def list_items(self):
         self.logger.info('Starting DynamoDB Tasks List Items')
         try:
-            response = self.dynamodb.scan()
+            response = self.DynamoDB.scan()
         except ClientError as err:
             self.logger.error(f'Error when attempting to scan table {self.table_name} with error: {err}')
             raise DynamoDBReadFailure(f'Error when attempt to scan table {self.table_name} with error: {err}')
@@ -66,7 +66,7 @@ class dynamodbtasks:
             'DocID': key,
         }
         try:
-            response = self.dynamodb.delete_item(
+            response = self.DynamoDB.delete_item(
                 Key=item
             )
         except ClientError as err:

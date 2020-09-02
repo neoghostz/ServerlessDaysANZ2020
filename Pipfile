@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 fpdf2 = "*"
+aws-xray-sdk = "*"
 
 [dev-packages]
 pytest = "*"

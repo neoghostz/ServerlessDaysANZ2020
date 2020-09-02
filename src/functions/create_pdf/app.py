@@ -3,11 +3,15 @@ import os
 import traceback
 import json
 from GeneratePDF import GeneratePDF
-from s3tasks import s3tasks
+from S3Tasks import S3Tasks
 from util import unquie_uuid
 from APIExceptions import S3WriteFailure, DynamoDBWriteFailure
-from dynamodbtasks import dynamodbtasks
+from DynamoDBTasks import DynamoDBTasks
 from RestfulEndpoint import Endpoint
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
+
+patch_all()
 
 
 class CreatePDF(Endpoint):
@@ -21,8 +25,8 @@ class CreatePDF(Endpoint):
         self.bucket = os.environ.get('Bucket', None)
         self.kmskey = os.environ.get('KMSKey', None)
         self.table = os.environ.get('Table', None)
-        self.s3tasks = s3tasks(bucket=self.bucket, kmskey=self.kmskey)
-        self.dynamodbtasks = dynamodbtasks(table_name=self.table)
+        self.S3Tasks = S3Tasks(bucket=self.bucket, kmskey=self.kmskey)
+        self.DynamoDBTasks = DynamoDBTasks(table_name=self.table)
         self.endpoint_path = "/create_pdf"
         self.status = None
         self.response_payload = None
@@ -32,8 +36,8 @@ class CreatePDF(Endpoint):
         try:
             pdf = GeneratePDF(self.data).build_pdf()
             doc_key = unquie_uuid()
-            self.s3tasks.write_file(body=pdf, key=doc_key)
-            self.dynamodbtasks.write_item(key=doc_key, payload=self.data)
+            self.S3Tasks.write_file(body=pdf, key=doc_key)
+            self.DynamoDBTasks.write_item(key=doc_key, payload=self.data)
         except (ValueError, AttributeError) as err:
             self.status = 400
             self.logger.error(repr(traceback.print_exc()))

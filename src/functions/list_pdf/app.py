@@ -1,9 +1,13 @@
 import logging
 import os
 import traceback
-from dynamodbtasks import dynamodbtasks
+from DynamoDBTasks import DynamoDBTasks
 from RestfulEndpoint import Endpoint
 from APIExceptions import DynamoDBReadFailure
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
+
+patch_all()
 
 
 class ListPDF(Endpoint):
@@ -18,11 +22,11 @@ class ListPDF(Endpoint):
         self.status = None
         self.response_payload = None
         self.table = os.environ.get('Table', None)
-        self.dynamodbtasks = dynamodbtasks(table_name=self.table)
+        self.DynamoDBTasks = DynamoDBTasks(table_name=self.table)
 
     def response(self):
         try:
-            list_pdf = self.dynamodbtasks.list_items()
+            list_pdf = self.DynamoDBTasks.list_items()
         except (ValueError, AttributeError) as err:
             self.status = 400
             self.logger.error(repr(traceback.print_exc()))

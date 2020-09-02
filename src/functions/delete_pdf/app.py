@@ -1,10 +1,14 @@
 import logging
 import os
 import traceback
-from s3tasks import s3tasks
-from dynamodbtasks import dynamodbtasks
+from S3Tasks import S3Tasks
+from DynamoDBTasks import DynamoDBTasks
 from RestfulEndpoint import Endpoint
 from APIExceptions import S3DeleteFailure, DynamoDBDeleteFailure
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core import patch_all
+
+patch_all()
 
 
 class DeletePDF(Endpoint):
@@ -22,13 +26,13 @@ class DeletePDF(Endpoint):
         self.bucket = os.environ.get('Bucket', None)
         self.kmskey = os.environ.get('KMSKey', None)
         self.table = os.environ.get('Table', None)
-        self.s3tasks = s3tasks(bucket=self.bucket, kmskey=self.kmskey)
-        self.dynamodbtasks = dynamodbtasks(table_name=self.table)
+        self.S3Tasks = S3Tasks(bucket=self.bucket, kmskey=self.kmskey)
+        self.DynamoDBTasks = DynamoDBTasks(table_name=self.table)
 
     def response(self):
         try:
-            self.s3tasks.delete_file(self.DocId)
-            self.dynamodbtasks.delete_item(self.DocId)
+            self.S3Tasks.delete_file(self.DocId)
+            self.DynamoDBTasks.delete_item(self.DocId)
         except (ValueError, AttributeError) as err:
             self.status = 400
             self.logger.error(repr(traceback.print_exc()))
